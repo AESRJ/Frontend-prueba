@@ -87,6 +87,28 @@
         </div>
       </div>
 
+      @if (totalDeteccionesUrl > 0) {
+        <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5">
+          <p class="text-xs font-bold text-[#9ca3af] uppercase tracking-wide mb-3">Sitios distractores visitados</p>
+          <div class="flex items-center gap-3 bg-[#fee2e2] rounded-xl px-4 py-3 mb-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            <div>
+              <p class="text-[1.1rem] font-extrabold text-[#dc2626] tabular-nums">{{ totalDeteccionesUrl }}</p>
+              <p class="text-[0.7rem] text-[#991b1b] font-medium leading-tight">Detecciones registradas en el servidor</p>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+            @for (d of sesion.detecciones_url ?? []; track d.id) {
+              <div class="flex items-center gap-2.5 text-xs px-3 py-2 rounded-lg bg-[#fee2e2]">
+                <span class="font-mono text-[#6b7280] shrink-0">{{ d.timestamp_deteccion }}</span>
+                <span class="font-semibold text-[#991b1b]">{{ d.nombre_detectado }}</span>
+                <span class="ml-auto text-[#9ca3af] capitalize">{{ d.categoria.replace('_', ' ') }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5">
         <p class="text-xs font-bold text-[#9ca3af] uppercase tracking-wide mb-3">Interrupciones detectadas</p>
 

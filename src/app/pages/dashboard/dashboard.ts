@@ -6,6 +6,7 @@ import { DistractionLogService } from '../../core/services/distracion-log.servic
 import { FocusService } from '../../core/services/focus.service';
 import { TimerService } from '../../core/services/timer.service';
 import { DistractorDetectionService, DistractorAction, DistractorDetectionEvent } from '../../core/services/distractor-detection.service';
+import { SessionApiService, DetectionOut } from '../../core/services/session-api.service';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Preferencias } from '../../features/preferencias/preferencias';
 import { SessionReportComponent, SessionReportData } from '../../shared/session-report/session-report';
@@ -50,7 +51,8 @@ export class Dashboard implements OnInit, OnDestroy {
     private distractionLog: DistractionLogService,
     private focusService: FocusService,
     public timerSvc: TimerService,
-    private distractorDetection: DistractorDetectionService
+    private distractorDetection: DistractorDetectionService,
+    private sessionApi: SessionApiService
   ) {}
 
   get timerDisplay()     { return this.timerSvc.timerDisplay; }
@@ -256,8 +258,23 @@ export class Dashboard implements OnInit, OnDestroy {
     const horaFin = this.formatearFecha(new Date());
     const completada = this.timerSvc.state.tiempoRestante <= 0;
 
-    if (this.timerSvc.state.sessionIdBackend) {
-      try { await this.focusService.endSession(this.timerSvc.state.sessionIdBackend).toPromise(); } catch (err) {}
+    // Capturar el ID antes de cerrar/limpiar la sesión, para poder traer las
+    // detecciones de URL desde el backend después.
+    const backendSessionId = this.timerSvc.state.sessionIdBackend;
+
+    if (backendSessionId) {
+      try { await this.focusService.endSession(backendSessionId).toPromise(); } catch (err) {}
+    }
+
+    // Traer las detecciones de URL registradas durante la sesión. Best-effort:
+    // si falla la red, el reporte sigue mostrando lo de cámara.
+    let deteccionesUrl: DetectionOut[] = [];
+    if (backendSessionId) {
+      try {
+        deteccionesUrl = await this.sessionApi.listDetections(backendSessionId).toPromise() ?? [];
+      } catch (err) {
+        deteccionesUrl = [];
+      }
     }
 
     const distraccionesData = this.distractionLog.sincronizarAlFinalizar();
@@ -271,7 +288,8 @@ export class Dashboard implements OnInit, OnDestroy {
       tiempo_usado_segundos: this.timerSvc.state.tiempoTotal - this.timerSvc.state.tiempoRestante,
       completada,
       distracciones: distraccionesData.eventos,
-      total_distracciones: distraccionesData.total
+      total_distracciones: distraccionesData.total,
+      detecciones_url: deteccionesUrl
     };
 
     const historial = JSON.parse(localStorage.getItem('focus_session_history') || '[]');

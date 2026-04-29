@@ -3,6 +3,7 @@ import { Login } from './pages/login/login';
 import { Profile } from './pages/profile/profile';
 import { Dashboard } from './pages/dashboard/dashboard';
 import { Distractors } from './pages/distractors/distractors';
+import { History } from './pages/history/history';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -11,4 +12,5 @@ export const routes: Routes = [
   { path: 'profile', component: Profile },
   { path: 'dashboard', component: Dashboard },
   { path: 'distractors', component: Distractors },
+  { path: 'history', component: History },
 ];

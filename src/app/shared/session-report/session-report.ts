@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DistractionEvent } from '../../core/services/distracion-log.service';
+import { DetectionOut } from '../../core/services/session-api.service';
 
 export interface SessionReportData {
   id: string;
@@ -12,6 +13,8 @@ export interface SessionReportData {
   completada: boolean;
   distracciones: DistractionEvent[];
   total_distracciones: number;
+  // Detecciones de URL traídas del backend (no se calculan localmente)
+  detecciones_url?: DetectionOut[];
 }
 
 @Component({
@@ -33,6 +36,7 @@ export class SessionReportComponent implements OnInit {
   porcentajeConcentracion = 0;
   totalDesvios = 0;
   totalFueraEncuadre = 0;
+  totalDeteccionesUrl = 0;
 
   // Para la gráfica circular SVG
   circleRadius = 45;
@@ -73,6 +77,7 @@ export class SessionReportComponent implements OnInit {
     // Desglose de distracciones por tipo
     this.totalDesvios = this.sesion.distracciones.filter(d => d.tipo === 'desvio_mirada').length;
     this.totalFueraEncuadre = this.sesion.distracciones.filter(d => d.tipo === 'fuera_de_encuadre').length;
+    this.totalDeteccionesUrl = this.sesion.detecciones_url?.length ?? 0;
 
     // Círculo SVG
     this.strokeDashoffset = this.circumference * (1 - this.porcentajeConcentracion / 100);
