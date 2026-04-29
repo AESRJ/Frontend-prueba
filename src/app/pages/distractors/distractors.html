@@ -1,0 +1,218 @@
+<div class="flex w-screen h-screen font-sans bg-[#F3F4F6] overflow-hidden">
+
+  <app-sidebar></app-sidebar>
+
+  <main class="flex-1 px-[52px] py-10 overflow-y-auto mobile:px-6 mobile:pt-16">
+
+    <div class="max-w-[860px] mx-auto">
+
+      <h1 class="text-[1.8rem] font-extrabold text-[#111827] mb-1">Distractores</h1>
+      <p class="text-sm text-[#6b7280] mb-8">
+        Gestiona tus distractores personales. Los globales vienen incluidos por el sistema.
+      </p>
+
+      @if (mensajeOk()) {
+        <div class="bg-[#ede9fe] text-[#6d28d9] text-xs font-semibold px-4 py-2 rounded-full mb-6 inline-block">
+          {{ mensajeOk() }}
+        </div>
+      }
+      @if (error()) {
+        <div class="bg-[#fee2e2] text-[#b91c1c] text-xs font-semibold px-4 py-2 rounded-lg mb-6">
+          {{ error() }}
+        </div>
+      }
+
+      <!-- Formulario crear / editar -->
+      <section class="bg-white rounded-2xl p-6 shadow-sm mb-8 border border-gray-100">
+        <h2 class="text-base font-bold text-[#111827] mb-4">
+          {{ modoEdicion() ? 'Editar distractor' : 'Nuevo distractor personal' }}
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[#374151]">Nombre</span>
+            <input type="text"
+                   class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#7c3aed]"
+                   placeholder="Ej. Reddit /r/python"
+                   [ngModel]="form().nombre"
+                   (ngModelChange)="setCampo('nombre', $event)">
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[#374151]">Identificador</span>
+            <input type="text"
+                   class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#7c3aed]"
+                   [placeholder]="form().tipo === 'url' ? 'reddit.com' : 'discord.exe'"
+                   [ngModel]="form().identificador"
+                   (ngModelChange)="setCampo('identificador', $event)">
+            <span class="text-[11px] text-[#6b7280] leading-snug">
+              @if (form().tipo === 'url') {
+                Solo el dominio. Si pegas la URL completa la limpiamos automáticamente.
+                @if (identificadorNormalizado() && identificadorNormalizado() !== form().identificador.trim()) {
+                  Se guardará como <code class="text-[#6d28d9] font-semibold">{{ identificadorNormalizado() }}</code>.
+                }
+              } @else {
+                Nombre del ejecutable, ej. <code class="text-[#6d28d9] font-semibold">discord.exe</code>. Solo aplica con extensión/app de escritorio.
+              }
+            </span>
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[#374151]">Tipo</span>
+            <select class="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-[#7c3aed]"
+                    [ngModel]="form().tipo"
+                    (ngModelChange)="setCampo('tipo', $event)">
+              @for (t of tipos; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[#374151]">Categoría</span>
+            <select class="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-[#7c3aed]"
+                    [ngModel]="form().categoria"
+                    (ngModelChange)="setCampo('categoria', $event)">
+              @for (c of categorias; track c.value) {
+                <option [value]="c.value">{{ c.label }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button"
+                  class="px-4 py-2 rounded-lg bg-[#7c3aed] text-white text-sm font-semibold border-none cursor-pointer hover:bg-[#6d28d9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  [disabled]="!formularioValido() || guardando()"
+                  (click)="guardar()">
+            {{ guardando() ? 'Guardando…' : (modoEdicion() ? 'Actualizar' : 'Crear') }}
+          </button>
+          @if (modoEdicion()) {
+            <button type="button"
+                    class="px-4 py-2 rounded-lg bg-white text-[#374151] text-sm font-semibold border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                    (click)="cancelarEdicion()">
+              Cancelar
+            </button>
+          }
+        </div>
+      </section>
+
+      <!-- Panel de prueba de detección -->
+      <section class="bg-white rounded-2xl p-6 shadow-sm mb-8 border border-gray-100">
+        <h2 class="text-base font-bold text-[#111827] mb-1">Probar detección</h2>
+        <p class="text-xs text-[#6b7280] mb-4">
+          Simula la llegada de una URL como si vinieras desde otra pestaña o desde una extensión.
+          No requiere sesión activa y no genera registros.
+        </p>
+
+        <div class="flex gap-2">
+          <input type="text"
+                 class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#7c3aed]"
+                 placeholder="https://www.reddit.com/r/python"
+                 [ngModel]="urlPrueba()"
+                 (ngModelChange)="setUrlPrueba($event)"
+                 (keyup.enter)="probarDeteccion()">
+          <button type="button"
+                  class="px-4 py-2 rounded-lg bg-[#7c3aed] text-white text-sm font-semibold border-none cursor-pointer hover:bg-[#6d28d9] transition-colors disabled:opacity-50"
+                  [disabled]="!urlPrueba().trim()"
+                  (click)="probarDeteccion()">
+            Probar
+          </button>
+        </div>
+
+        @if (resultadoPrueba(); as r) {
+          <div class="mt-4 rounded-lg border p-3 text-sm"
+               [class]="r.match ? 'bg-[#fef3c7] border-amber-200 text-[#92400e]' : 'bg-gray-50 border-gray-200 text-[#374151]'">
+            <p class="font-semibold mb-1">Hostname probado: <code>{{ r.hostnameProbado }}</code></p>
+            @if (r.match) {
+              <p>
+                ✓ Coincide con <strong>{{ r.match.nombre }}</strong>
+                <span class="text-xs">({{ r.match.categoria }} · {{ r.match.origen }})</span>
+              </p>
+              <p class="text-xs mt-1">
+                Acción que se ejecutaría según tu nivel actual:
+                <strong>{{ r.accionProyectada }}</strong>
+              </p>
+            } @else {
+              <p>✗ No coincide con ningún distractor del catálogo.</p>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Personales -->
+      <section class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-[#111827]">Mis distractores</h2>
+          <span class="text-xs font-semibold text-[#6b7280]">{{ personales().length }} total</span>
+        </div>
+
+        @if (cargando()) {
+          <div class="text-sm text-[#6b7280]">Cargando…</div>
+        } @else if (personales().length === 0) {
+          <div class="bg-white rounded-2xl p-6 text-center text-sm text-[#6b7280] border border-dashed border-gray-200">
+            Aún no has agregado distractores personales. Usa el formulario de arriba.
+          </div>
+        } @else {
+          <ul class="space-y-2">
+            @for (d of personales(); track d.id) {
+              <li class="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-gray-100">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-[#111827] truncate">{{ d.nombre }}</span>
+                    <span class="text-[10px] uppercase tracking-wide font-bold text-[#6d28d9] bg-[#ede9fe] px-2 py-0.5 rounded">
+                      {{ d.categoria }}
+                    </span>
+                    <span class="text-[10px] uppercase tracking-wide font-bold text-[#374151] bg-gray-100 px-2 py-0.5 rounded">
+                      {{ d.tipo }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-[#6b7280] truncate mt-0.5">{{ d.identificador }}</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 ml-3">
+                  <button type="button"
+                          class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-[#374151] border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                          (click)="iniciarEdicion(d)">
+                    Editar
+                  </button>
+                  <button type="button"
+                          class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-[#b91c1c] border border-red-200 hover:bg-red-50 cursor-pointer transition-colors"
+                          (click)="eliminar(d)">
+                    Eliminar
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- Globales (solo lectura) -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-[#111827]">Distractores globales</h2>
+          <span class="text-xs font-semibold text-[#6b7280]">{{ globales().length }} incluidos</span>
+        </div>
+
+        @if (globales().length === 0 && !cargando()) {
+          <div class="text-sm text-[#6b7280]">No hay distractores globales registrados.</div>
+        } @else {
+          <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            @for (d of globales(); track d.id) {
+              <li class="bg-white rounded-xl px-4 py-3 border border-gray-100">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-[#111827] truncate">{{ d.nombre }}</span>
+                  <span class="text-[10px] uppercase tracking-wide font-bold text-[#6d28d9] bg-[#ede9fe] px-2 py-0.5 rounded">
+                    {{ d.categoria }}
+                  </span>
+                </div>
+                <p class="text-xs text-[#6b7280] truncate mt-0.5">{{ d.identificador }}</p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+    </div>
+  </main>
+</div>

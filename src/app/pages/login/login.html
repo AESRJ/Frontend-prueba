@@ -1,0 +1,176 @@
+<div class="flex w-screen h-screen overflow-hidden font-sans">
+
+  <div class="mobile:hidden relative w-[48%] bg-[#3730C4] flex flex-col justify-start p-12 overflow-hidden">
+
+    <div class="relative z-10 flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center p-2.5">
+        <img src="/assets/logo.png" class="w-full h-full object-contain invert" />
+      </div>
+      <span class="font-sans font-bold text-white text-lg tracking-wide">Focus AI</span>
+    </div>
+
+    <div class="relative z-10 mt-auto mb-auto">
+      <p class="text-[0.65rem] font-semibold text-white/60 uppercase tracking-[0.15em] mb-5">Sesión de concentración</p>
+      <h2 class="font-display font-black text-white text-5xl leading-tight tracking-tight mb-6">
+        Mejora tu<br>concentración<br>con IA
+      </h2>
+      <p class="text-white/60 text-sm leading-relaxed max-w-[280px]">
+        Sesiones adaptativas que se ajustan a tu ritmo de trabajo y nivel de enfoque.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="flex-1 mobile:w-full bg-[#F3F4F6] flex flex-col items-center justify-center px-16 mobile:px-6 overflow-y-auto">
+
+    <div class="w-full max-w-sm py-10">
+
+      <div class="flex justify-center mb-4">
+        <img src="/assets/logo.png" class="w-14 h-14 object-contain" />
+      </div>
+
+      <h1 class="font-display font-bold text-[#111827] text-xl text-center mb-8 tracking-tight">
+        {{ mode() === 'login' ? 'Inicio de Sesión' : 'Crear Cuenta' }}
+      </h1>
+
+      <form (ngSubmit)="onSubmit()" novalidate>
+
+        @if (mode() === 'register') {
+          <div class="mb-4">
+            <label class="field-label text-[#374151]">Nombre Completo</label>
+            <input
+              class="input-base bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED]/20"
+              [class.input-error]="nameError()"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+              name="name"
+              type="text"
+              (blur)="validateName()"
+            />
+            @if (nameError()) {
+              <span class="error-msg">{{ nameError() }}</span>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label text-[#374151]">Nombre de Usuario</label>
+            <input
+              class="input-base bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED]/20"
+              [class.input-error]="usernameError()"
+              [ngModel]="username()"
+              (ngModelChange)="username.set($event)"
+              name="username"
+              type="text"
+              (blur)="validateUsername()"
+            />
+            @if (usernameError()) {
+              <span class="error-msg">{{ usernameError() }}</span>
+            }
+          </div>
+        }
+
+        <div class="mb-4">
+          <label class="field-label text-[#374151]">Correo Electrónico</label>
+          <input
+            class="input-base bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED]/20"
+            [class.input-error]="emailError()"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            name="email"
+            type="text"
+            (blur)="validateEmail()"
+            [disabled]="isLocked()"
+          />
+          @if (emailError()) {
+            <span class="error-msg">{{ emailError() }}</span>
+          }
+        </div>
+
+        <div class="mb-2">
+          <label class="field-label text-[#374151]">Contraseña</label>
+          <div class="relative">
+            <input
+              class="input-base pr-11 bg-white border-[#E5E7EB] text-[#111827] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED]/20"
+              [class.input-error]="passwordError()"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+              name="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              (blur)="validatePassword()"
+              [disabled]="isLocked()"
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
+              (click)="togglePassword()"
+              [disabled]="isLocked()"
+            >
+              <lucide-icon [img]="showPassword() ? EyeOff : Eye" size="18"></lucide-icon>
+            </button>
+          </div>
+          @if (passwordError()) {
+            <span class="error-msg">{{ passwordError() }}</span>
+          }
+          @if (mode() === 'register' && !passwordError()) {
+            <span class="text-xs text-[#9CA3AF] mt-1 block">Mínimo 8 caracteres</span>
+          }
+        </div>
+
+        <button
+          type="submit"
+          class="btn-primary mt-8 rounded-full"
+          [disabled]="mode() === 'login' ? isLoginDisabled() : isRegisterDisabled()"
+        >
+          @if (isLocked()) {
+            Bloqueado ({{ lockRemainingSeconds() }}s)
+          } @else if (loading()) {
+            {{ mode() === 'login' ? 'Iniciando...' : 'Registrando...' }}
+          } @else {
+            {{ mode() === 'login' ? 'Iniciar Sesión' : 'Registrarse' }}
+          }
+        </button>
+
+        @if (serverError()) {
+          <p [class]="serverError().includes('bloqueada') ? 'alert-lock animate-shake' : 'alert-error animate-shake'">
+            {{ serverError() }}
+          </p>
+        }
+
+        @if (successMessage()) {
+          <p class="success-msg">{{ successMessage() }}</p>
+        }
+
+      </form>
+
+      @if (showModal()) {
+        <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-2xl p-8 max-w-xs w-full text-center shadow-xl">
+            <p class="font-display font-bold text-[#111827] text-lg mb-2">¡Cuenta creada!</p>
+            <p class="text-[#6B7280] text-sm mb-6">Ya puedes iniciar sesión con tus datos.</p>
+            <button class="btn-primary rounded-full" (click)="goToLogin()">Iniciar Sesión</button>
+          </div>
+        </div>
+      }
+
+      <p class="text-center text-[#6B7280] text-sm mt-6">
+        @if (mode() === 'login') {
+          ¿No tienes cuenta?
+          <button
+            type="button"
+            class="text-[#7C3AED] font-semibold hover:underline transition-colors bg-transparent border-none cursor-pointer"
+            (click)="switchMode('register')"
+          >Crear Cuenta</button>
+        } @else {
+          ¿Ya tienes cuenta?
+          <button
+            type="button"
+            class="text-[#7C3AED] font-semibold hover:underline transition-colors bg-transparent border-none cursor-pointer"
+            (click)="switchMode('login')"
+          >Iniciar Sesión</button>
+        }
+      </p>
+
+    </div>
+  </div>
+
+</div>

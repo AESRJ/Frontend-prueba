@@ -1,0 +1,76 @@
+<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" (click)="cerrar.emit()">
+  <div class="bg-white rounded-2xl p-10 w-[90%] max-w-[600px] relative animate-[scaleIn_0.3s_ease]" (click)="$event.stopPropagation()">
+
+    <button class="absolute top-5 right-5 text-[#9ca3af] hover:text-[#111827] transition-colors bg-transparent border-none cursor-pointer" (click)="cerrar.emit()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <h2 class="font-display font-bold text-[#312e81] text-2xl mb-8 text-center">Preferencias</h2>
+
+    <div class="mb-8">
+      <p class="text-sm font-semibold text-[#312e81] mb-4">Nivel de concentración</p>
+      <div class="flex gap-3 flex-wrap justify-center">
+        <button
+          (click)="seleccionarModo('absoluta')"
+          class="px-6 py-3 rounded-full text-sm font-semibold border-none cursor-pointer transition-all"
+          [class]="preferencias().modo === 'absoluta'
+            ? 'bg-[#7c3aed] text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] scale-105'
+            : 'bg-[#ede9fe] text-[#6d28d9] hover:bg-[#ddd6fe]'">
+          Concentración absoluta
+        </button>
+        <button
+          (click)="seleccionarModo('alerta')"
+          class="px-6 py-3 rounded-full text-sm font-semibold border-none cursor-pointer transition-all"
+          [class]="preferencias().modo === 'alerta'
+            ? 'bg-[#7c3aed] text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] scale-105'
+            : 'bg-[#ede9fe] text-[#6d28d9] hover:bg-[#ddd6fe]'">
+          Alerta
+        </button>
+        <button
+          (click)="seleccionarModo('tranquilo')"
+          class="px-6 py-3 rounded-full text-sm font-semibold border-none cursor-pointer transition-all"
+          [class]="preferencias().modo === 'tranquilo'
+            ? 'bg-[#7c3aed] text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] scale-105'
+            : 'bg-[#ede9fe] text-[#6d28d9] hover:bg-[#ddd6fe]'">
+          Tranquilo
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <p class="text-sm font-semibold text-[#312e81] mb-4">Duración de la sesión</p>
+      <div class="px-4">
+        <input
+          type="range"
+          min="15"
+          max="120"
+          [ngModel]="preferencias().duracion"
+          (ngModelChange)="actualizarDuracion($event)"
+          class="w-full accent-[#7c3aed] cursor-pointer"
+        />
+        <div class="flex justify-between mt-2 text-xs text-[#6b7280]">
+          <span>15 min</span>
+          <span class="text-[#7c3aed] text-sm font-extrabold">{{ preferencias().duracion }} min</span>
+          <span>120 min</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <button
+        (click)="guardar()"
+        [disabled]="botonBloqueado()"
+        class="bg-[#1e1b4b] hover:bg-[#312e81] text-white px-10 py-3.5 rounded-xl text-sm font-bold border-none cursor-pointer transition-colors disabled:bg-[#9ca3af] disabled:cursor-not-allowed">
+        Guardar Preferencias
+      </button>
+
+      @if (mostrarCompletado()) {
+        <p class="mt-4 text-sm font-semibold text-[#059669]">✅ Preferencias guardadas correctamente</p>
+      }
+      @if (mostrarSesionActiva()) {
+        <p class="mt-4 text-sm font-semibold text-[#7c3aed] bg-[#f5f3ff] border border-[#ddd6fe] rounded-xl px-4 py-2.5">✅ Guardado — Sesión en curso no interrumpida</p>
+      }
+    </div>
+
+  </div>
+</div>

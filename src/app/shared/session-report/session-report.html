@@ -1,0 +1,157 @@
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-[2000] animate-[fadeIn_0.3s_ease] px-4">
+  <div class="bg-white rounded-3xl w-full max-w-[520px] max-h-[90vh] overflow-y-auto shadow-2xl animate-[scaleIn_0.35s_ease]">
+
+    <!-- Header -->
+    <div class="px-8 pt-8 pb-5 border-b border-[#f3f4f6]">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="text-[1.45rem] font-extrabold text-[#111827]">Resumen de tu sesión</h2>
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded-full text-[#9ca3af] hover:bg-[#f3f4f6] hover:text-[#374151] transition-colors border-none bg-transparent cursor-pointer text-lg font-sans"
+          (click)="onCerrar()">✕</button>
+      </div>
+      <p class="text-sm text-[#6b7280]">{{ sesion.start_time }} — {{ sesion.end_time }}</p>
+    </div>
+
+    <div class="px-8 py-6 flex flex-col gap-5">
+
+      <!-- Bloque tiempo -->
+      <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5">
+        <p class="text-xs font-bold text-[#9ca3af] uppercase tracking-wide mb-3">Tiempo</p>
+        <div class="flex gap-4">
+          <div class="flex-1 bg-[#f9fafb] rounded-xl p-4 text-center">
+            <p class="text-[1.6rem] font-extrabold text-[#111827] tabular-nums">{{ duracionTotalTexto }}</p>
+            <p class="text-xs text-[#6b7280] mt-1 font-medium">Duración total</p>
+          </div>
+          <div class="flex-1 bg-[#f5f3ff] rounded-xl p-4 text-center">
+            <p class="text-[1.6rem] font-extrabold text-[#7C5CBF] tabular-nums">{{ tiempoEfectivoTexto }}</p>
+            <p class="text-xs text-[#7C5CBF] mt-1 font-medium">Tiempo efectivo</p>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2 text-xs text-[#6b7280]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Modo: <span class="font-semibold text-[#374151]">{{ sesion.modo }}</span>
+          &nbsp;·&nbsp; Configurada: <span class="font-semibold text-[#374151]">{{ sesion.duracion_configurada }} min</span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5">
+        <p class="text-xs font-bold text-[#9ca3af] uppercase tracking-wide mb-4">Concentración</p>
+        <div class="flex items-center gap-6">
+          <div class="shrink-0">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle
+                cx="55" cy="55" [attr.r]="circleRadius"
+                fill="none" stroke="#e5e7eb" stroke-width="10"
+              />
+              <circle
+                cx="55" cy="55" [attr.r]="circleRadius"
+                fill="none"
+                [attr.stroke]="colorNivel"
+                stroke-width="10"
+                stroke-linecap="round"
+                [attr.stroke-dasharray]="circumference"
+                [attr.stroke-dashoffset]="strokeDashoffset"
+                transform="rotate(-90 55 55)"
+                style="transition: stroke-dashoffset 1s ease"
+              />
+              <text x="55" y="51" text-anchor="middle" class="text-base font-extrabold" fill="#111827"
+                    style="font-size:18px; font-weight:800; font-family:inherit">
+                {{ porcentajeConcentracion }}%
+              </text>
+              <text x="55" y="67" text-anchor="middle" fill="#9ca3af"
+                    style="font-size:10px; font-family:inherit">
+                enfoque
+              </text>
+            </svg>
+          </div>
+          
+          <div class="flex-1">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-bold mb-3"
+                 [style.background]="bgNivel"
+                 [style.color]="colorNivel">
+              <span class="w-2 h-2 rounded-full" [style.background]="colorNivel"></span>
+              Nivel {{ nivelConcentracion }}
+            </div>
+            <p class="text-xs text-[#6b7280] leading-relaxed">
+              @if (porcentajeConcentracion >= 80) {
+                ¡Excelente concentración! Mantuviste el foco la mayor parte de la sesión.
+              }
+              @if (porcentajeConcentracion >= 50 && porcentajeConcentracion < 80) {
+                Concentración moderada. Hay oportunidad de reducir distracciones.
+              }
+              @if (porcentajeConcentracion < 50) {
+                La concentración fue baja. Intenta minimizar fuentes de distracción.
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5">
+        <p class="text-xs font-bold text-[#9ca3af] uppercase tracking-wide mb-3">Interrupciones detectadas</p>
+
+        @if (sesion.total_distracciones === 0) {
+          <div class="flex items-center gap-3 text-[#059669] bg-[#ecfdf5] rounded-xl px-4 py-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+            <span class="text-sm font-semibold">Sin interrupciones — ¡concentración perfecta!</span>
+          </div>
+        }
+
+        @if (sesion.total_distracciones > 0) {
+          <div class="flex gap-3 mb-4">
+            <div class="flex-1 flex items-center gap-3 bg-[#fef3c7] rounded-xl px-4 py-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" width="16" height="16"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+              <div>
+                <p class="text-[1.1rem] font-extrabold text-[#d97706] tabular-nums">{{ totalDesvios }}</p>
+                <p class="text-[0.7rem] text-[#92400e] font-medium leading-tight">Desvío de mirada</p>
+              </div>
+            </div>
+            <div class="flex-1 flex items-center gap-3 bg-[#fee2e2] rounded-xl px-4 py-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="16" height="16"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+              <div>
+                <p class="text-[1.1rem] font-extrabold text-[#dc2626] tabular-nums">{{ totalFueraEncuadre }}</p>
+                <p class="text-[0.7rem] text-[#991b1b] font-medium leading-tight">Fuera de encuadre</p>
+              </div>
+            </div>
+          </div>
+
+          @if (sesion.distracciones.length > 0) {
+            <p class="text-xs text-[#9ca3af] font-semibold mb-2">Últimas interrupciones</p>
+            <div class="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+              @for (d of sesion.distracciones.slice(-5).reverse(); track d.timestamp) {
+                <div class="flex items-center gap-2.5 text-xs px-3 py-2 rounded-lg"
+                     [class.bg-[#fef3c7]]="d.tipo === 'desvio_mirada'"
+                     [class.bg-[#fee2e2]]="d.tipo === 'fuera_de_encuadre'">
+                  <span class="font-mono text-[#6b7280] shrink-0">{{ d.timestamp }}</span>
+                  <span class="font-semibold"
+                        [class.text-[#92400e]]="d.tipo === 'desvio_mirada'"
+                        [class.text-[#991b1b]]="d.tipo === 'fuera_de_encuadre'">
+                    {{ d.tipo === 'desvio_mirada' ? 'Desvío de mirada' : 'Fuera de encuadre' }}
+                  </span>
+                  @if (d.duracion_segundos) {
+                    <span class="ml-auto text-[#9ca3af]">{{ d.duracion_segundos }}s</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+    </div>
+
+    <div class="px-8 pb-8 flex gap-3">
+      <button
+        class="flex-1 px-6 py-3.5 rounded-full text-sm font-bold text-[#374151] bg-[#f3f4f6] hover:bg-[#e5e7eb] border-none cursor-pointer transition-colors font-sans"
+        (click)="onCerrar()">
+        Cerrar
+      </button>
+      <button
+        class="flex-1 px-6 py-3.5 rounded-full text-sm font-bold text-white bg-[#7C5CBF] hover:bg-[#6d28d9] border-none cursor-pointer transition-colors font-sans"
+        (click)="onNuevaSesion()">
+        Nueva Sesión
+      </button>
+    </div>
+
+  </div>
+</div>
