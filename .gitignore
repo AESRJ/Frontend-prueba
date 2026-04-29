@@ -42,3 +42,12 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+*.env
+
+# Vercel
+.vercel

@@ -1,6 +1,8 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { DistractorService, Distractor as BackendDistractor } from './distractor.service';
+import { SessionApiService } from './session-api.service';
+import { TimerService } from './timer.service';
 
 export type RestrictionLevel = 'bajo' | 'intermedio' | 'alto';
 export type DistractorCategory = 'red_social' | 'videojuego' | 'streaming' | 'otro';
@@ -63,6 +65,8 @@ export class DistractorDetectionService implements OnDestroy {
   readonly deteccion$ = new Subject<{ evento: DistractorDetectionEvent; accion: DistractorAction }>();
 
   private readonly distractorApi = inject(DistractorService);
+  private readonly sessionApi = inject(SessionApiService);
+  private readonly timer = inject(TimerService);
 
   private pollingInterval: any = null;
   private sesionActiva = false;
@@ -212,9 +216,13 @@ export class DistractorDetectionService implements OnDestroy {
       url: rawUrl
     };
 
-    // Registrar siempre
+    // Registrar siempre en memoria + localStorage (fallback offline)
     this.registros.push(evento);
     this.persistirRegistro(evento);
+
+    // Si hay sesión activa en backend, enviar la detección. Es best-effort:
+    // un fallo de red no debe bloquear el monitoreo ni perder el evento local.
+    this.enviarDeteccionBackend(evento, match);
 
     // Determinar acción
     let accion: DistractorAction;
@@ -228,6 +236,37 @@ export class DistractorDetectionService implements OnDestroy {
 
     this.deteccion$.next({ evento, accion });
     return accion;
+  }
+
+  /**
+   * Envía la detección al backend si hay sesión activa identificada.
+   * Fire-and-forget: errores se loguean pero no rompen el flujo local.
+   * Usa el `identificador` (hostname) para que el backend resuelva el FK
+   * del distractor — así no necesitamos cargar el id en este servicio.
+   */
+  private enviarDeteccionBackend(
+    evento: DistractorDetectionEvent,
+    match: DistractorEntry,
+  ): void {
+    const sessionId = this.timer.state.sessionIdBackend;
+    if (sessionId == null) return;
+    if (!match.url) return;  // sin url no hay identificador que mandar
+
+    this.sessionApi
+      .createDetection(sessionId, {
+        identificador: match.url,
+        nombre_detectado: evento.nombre,
+        categoria: evento.categoria,
+        timestamp_deteccion: evento.timestamp,
+      })
+      .subscribe({
+        next: () => { /* persistido en backend */ },
+        error: (err) => {
+          // 409 = sesión ya finalizada; 404 = distractor no encontrado.
+          // En ambos casos el evento queda igual en localStorage.
+          console.warn('[DistractorDetection] no se pudo registrar en backend:', err?.status ?? err);
+        },
+      });
   }
 
   private persistirRegistro(evento: DistractorDetectionEvent): void {
