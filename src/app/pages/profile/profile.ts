@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, UserProfile, UpdateProfileRequest } from '../../core/auth/auth.service';
 import { DistractorDetectionService, RestrictionLevel } from '../../core/services/distractor-detection.service';
+import { TimerService } from '../../core/services/timer.service';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 
 @Component({
@@ -46,7 +47,8 @@ export class Profile implements OnInit {
     private router: Router,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
-    private distractorDetection: DistractorDetectionService
+    private distractorDetection: DistractorDetectionService,
+    private timerSvc: TimerService
   ) {}
 
   ngOnInit() {
@@ -73,6 +75,7 @@ export class Profile implements OnInit {
       },
       error: (err) => {
         if (err.status === 401) {
+          this.timerSvc.limpiarParaLogout();
           this.authService.logout();
           this.router.navigate(['/login']);
         } else {
@@ -262,6 +265,7 @@ export class Profile implements OnInit {
         } else if (errorLower.includes('email')) {
           this.serverError = 'No se puede cambiar el correo electrónico';
         } else if (err.status === 401) {
+          this.timerSvc.limpiarParaLogout();
           this.authService.logout();
           this.router.navigate(['/login']);
           return;
@@ -275,6 +279,7 @@ export class Profile implements OnInit {
   }
 
   onLogout() {
+    this.timerSvc.limpiarParaLogout();
     this.authService.logout();
     this.router.navigate(['/login']);
   }

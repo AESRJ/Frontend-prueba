@@ -90,7 +90,16 @@ export class AuthService {
   }
  
   logout(): void {
+    // Limpia el token y toda la data per-user que vive en localStorage
+    // (preferencias, estado del timer, historial de sesiones, etc.) para
+    // evitar que un usuario distinto que se loguee despues vea datos del anterior.
     localStorage.removeItem('access_token');
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('focus_')) {
+        localStorage.removeItem(key);
+      }
+    }
   }
  
   getToken(): string | null {

@@ -110,6 +110,14 @@ export class TimerService {
     };
   }
 
+  // En logout no queremos preservar la duracion/modo del usuario anterior,
+  // sino volver al estado por defecto absoluto.
+  limpiarParaLogout() {
+    this.limpiarInterval();
+    localStorage.removeItem('focus_timer_state');
+    this.state = this.getEstadoInicial();
+  }
+
   get timerDisplay(): string {
     const h = Math.floor(this.state.tiempoRestante / 3600);
     const m = Math.floor((this.state.tiempoRestante % 3600) / 60);
