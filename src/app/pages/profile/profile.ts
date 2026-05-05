@@ -43,6 +43,15 @@ export class Profile implements OnInit {
   nivelRestriccionPendiente: RestrictionLevel = 'intermedio';
   nivelGuardado = false;
 
+  // Frases de motivacion (se muestran en pantalla de bloqueo de la extension)
+  motivationPhrases: string[] = [];
+  newPhrase = '';
+  phrasesSaved = false;
+  phrasesError = '';
+  loadingPhrases = false;
+  readonly MAX_PHRASE_LEN = 280;
+  readonly MAX_PHRASES = 20;
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -57,11 +66,72 @@ export class Profile implements OnInit {
       return;
     }
     this.loadProfile();
+    this.loadMotivationPhrases();
 
     // H9 cargar nivel de restricción pendiente (o actual)
     const pending = localStorage.getItem('focus_restriction_level_pending') as RestrictionLevel;
     const current = localStorage.getItem('focus_restriction_level') as RestrictionLevel;
     this.nivelRestriccionPendiente = pending || current || 'intermedio';
+  }
+
+  // ---------- Frases de motivacion ----------
+
+  private loadMotivationPhrases() {
+    this.authService.getMotivationPhrases().subscribe({
+      next: (res) => {
+        this.motivationPhrases = Array.isArray(res?.phrases) ? [...res.phrases] : [];
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Silencioso: si falla, lista vacia (la extension caera a defaults).
+        this.motivationPhrases = [];
+      },
+    });
+  }
+
+  agregarFrase() {
+    const text = this.newPhrase.trim();
+    this.phrasesError = '';
+    if (!text) return;
+    if (text.length > this.MAX_PHRASE_LEN) {
+      this.phrasesError = `Maximo ${this.MAX_PHRASE_LEN} caracteres por frase.`;
+      return;
+    }
+    if (this.motivationPhrases.includes(text)) {
+      this.phrasesError = 'Ya tienes esa frase guardada.';
+      return;
+    }
+    if (this.motivationPhrases.length >= this.MAX_PHRASES) {
+      this.phrasesError = `Maximo ${this.MAX_PHRASES} frases.`;
+      return;
+    }
+    this.motivationPhrases = [...this.motivationPhrases, text];
+    this.newPhrase = '';
+    this.persistirFrases();
+  }
+
+  eliminarFrase(index: number) {
+    this.motivationPhrases = this.motivationPhrases.filter((_, i) => i !== index);
+    this.persistirFrases();
+  }
+
+  private persistirFrases() {
+    this.loadingPhrases = true;
+    this.phrasesError = '';
+    this.authService.saveMotivationPhrases(this.motivationPhrases).subscribe({
+      next: (res) => {
+        this.motivationPhrases = Array.isArray(res?.phrases) ? [...res.phrases] : this.motivationPhrases;
+        this.loadingPhrases = false;
+        this.phrasesSaved = true;
+        setTimeout(() => { this.phrasesSaved = false; this.cdr.markForCheck(); }, 2000);
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.loadingPhrases = false;
+        this.phrasesError = err?.error?.detail || 'No se pudieron guardar las frases.';
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   private loadProfile() {

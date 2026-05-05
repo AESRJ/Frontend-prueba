@@ -177,6 +177,64 @@
           <p class="text-sm text-[#ef4444] text-center mb-3">{{ serverError }}</p>
         }
 
+        <!-- Frases motivacionales personales -->
+        <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5 mt-1 mb-4">
+          <div class="flex items-center gap-2 mb-1">
+            <svg class="w-4 h-4 text-[#7c3aed] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-6 0v4"/><rect x="3" y="9" width="18" height="11" rx="2"/></svg>
+            <p class="text-sm font-bold text-[#111827]">Mensajes para no rendirte</p>
+          </div>
+          <p class="text-xs text-[#6b7280] mb-4 leading-relaxed">
+            Aqui puedes escribir un mensaje para ti mismo para no rendirte en tus metas.
+            Cuando la extension bloquee una pagina distractora, mostrara una de tus frases al azar.
+            Si no agregas ninguna, se mostraran frases por defecto.
+          </p>
+
+          <div class="flex gap-2 mb-3">
+            <input
+              type="text"
+              [(ngModel)]="newPhrase"
+              name="newPhrase"
+              [maxlength]="MAX_PHRASE_LEN"
+              placeholder="Ej: Cada dia que estudio, estoy un paso mas cerca de mi meta."
+              (keyup.enter)="agregarFrase()"
+              class="flex-1 border border-[#e5e7eb] rounded-xl px-4 py-2.5 text-sm text-[#111827] bg-[#f9fafb] outline-none transition-colors focus:border-[#7c3aed] focus:bg-white"
+            />
+            <button type="button"
+                    class="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4 py-2.5 rounded-xl text-sm font-bold border-none cursor-pointer transition-colors disabled:bg-[#c4b5fd] disabled:cursor-not-allowed shrink-0"
+                    [disabled]="loadingPhrases || !newPhrase.trim()"
+                    (click)="agregarFrase()">
+              Agregar
+            </button>
+          </div>
+
+          @if (phrasesError) {
+            <p class="text-xs text-[#ef4444] mb-2">{{ phrasesError }}</p>
+          }
+          @if (phrasesSaved) {
+            <p class="text-xs text-[#059669] font-semibold mb-2 animate-[fadeIn_0.2s_ease]">✅ Frases guardadas</p>
+          }
+
+          @if (motivationPhrases.length === 0) {
+            <p class="text-xs text-[#9ca3af] italic mt-2">Aun no tienes frases. La extension usara las predeterminadas.</p>
+          } @else {
+            <ul class="flex flex-col gap-2 mt-2">
+              @for (frase of motivationPhrases; track $index) {
+                <li class="flex items-start justify-between gap-3 p-3 rounded-xl bg-[#f5f3ff] border border-[#ede9fe]">
+                  <span class="text-sm text-[#312e81] flex-1 leading-snug">{{ frase }}</span>
+                  <button type="button"
+                          class="text-[#9ca3af] hover:text-[#ef4444] bg-transparent border-none cursor-pointer p-1 shrink-0 transition-colors"
+                          [disabled]="loadingPhrases"
+                          (click)="eliminarFrase($index)"
+                          title="Eliminar frase">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </li>
+              }
+            </ul>
+            <p class="text-[11px] text-[#9ca3af] mt-3">{{ motivationPhrases.length }} / {{ MAX_PHRASES }} frases guardadas</p>
+          }
+        </div>
+
         <!-- H9 — Nivel de restricción -->
         <div class="bg-white rounded-2xl border border-[#e5e7eb] p-5 mt-1 mb-4">
           <div class="flex items-center gap-2 mb-1">

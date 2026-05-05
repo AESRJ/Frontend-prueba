@@ -88,6 +88,15 @@ export class AuthService {
   updateProfile(data: UpdateProfileRequest): Observable<UserProfile> {
     return this.http.patch<UserProfile>(`${this.BASE_URL}/users/me`, data);
   }
+
+  // Frases motivacionales personalizadas (se muestran en blocked.html de la extension)
+  getMotivationPhrases(): Observable<{ phrases: string[] }> {
+    return this.http.get<{ phrases: string[] }>(`${this.BASE_URL}/profile/motivation-phrases`);
+  }
+
+  saveMotivationPhrases(phrases: string[]): Observable<{ phrases: string[] }> {
+    return this.http.put<{ phrases: string[] }>(`${this.BASE_URL}/profile/motivation-phrases`, { phrases });
+  }
  
   logout(): void {
     // Limpia el token y toda la data per-user que vive en localStorage
