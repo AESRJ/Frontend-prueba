@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { FocusService } from '../../core/services/focus.service';
 import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 
 @Component({
@@ -38,7 +39,11 @@ export class Login {
   lockRemainingSeconds = signal(0);
   private lockInterval: any = null;
 
-  constructor(private router: Router, private authService: AuthService) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private focusSvc: FocusService,
+  ) {}
 
   togglePassword() {
     this.showPassword.update(v => !v);
@@ -189,7 +194,18 @@ export class Login {
       next: () => {
         this.resetFailedAttempts();
         this.successMessage.set('Inicio de sesión exitoso');
-        this.router.navigate(['/dashboard']);
+        // Restaurar preferencias guardadas en backend al localStorage para que
+        // las paginas (preferencias, dashboard, timer) las usen sin tener que
+        // ir a /preferences. Si falla, las paginas caen a sus defaults.
+        this.focusSvc.getPreferences().subscribe({
+          next: (prefs) => {
+            if (prefs) this.focusSvc.guardarPreferenciasLocal(prefs);
+            this.router.navigate(['/dashboard']);
+          },
+          error: () => {
+            this.router.navigate(['/dashboard']);
+          },
+        });
       },
       error: (err) => {
         const errorMsg = err.error?.detail || 'Correo o contraseña incorrectos';

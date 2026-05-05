@@ -99,6 +99,10 @@ export class AuthService {
   }
  
   logout(): void {
+    // Antes de limpiar el token, intentar finalizar la sesion activa en el
+    // backend (si existe) para que no quede colgada como "activa" en BD.
+    this.endActiveSessionBestEffort();
+
     // Limpia el token y toda la data per-user que vive en localStorage
     // (preferencias, estado del timer, historial de sesiones, etc.) para
     // evitar que un usuario distinto que se loguee despues vea datos del anterior.
@@ -108,6 +112,39 @@ export class AuthService {
       if (key && key.startsWith('focus_')) {
         localStorage.removeItem(key);
       }
+    }
+  }
+
+  /**
+   * Finaliza la sesion activa en el backend (best-effort, sin esperar respuesta).
+   * Usa fetch con keepalive para que la peticion sobreviva al cierre de pestana
+   * o al unload de la pagina. Ideal para llamarse en logout() y en `pagehide`.
+   */
+  endActiveSessionBestEffort(): void {
+    try {
+      const token = localStorage.getItem('access_token');
+      const stateRaw = localStorage.getItem('focus_timer_state');
+      if (!token || !stateRaw) return;
+
+      let sessionId: number | null = null;
+      try {
+        sessionId = JSON.parse(stateRaw)?.sessionIdBackend ?? null;
+      } catch {
+        return;
+      }
+      if (!sessionId) return;
+
+      fetch(`${this.BASE_URL}/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+        keepalive: true,
+      }).catch(() => { /* best effort, no recuperamos errores */ });
+    } catch {
+      /* nunca bloquear logout/unload por esto */
     }
   }
  
