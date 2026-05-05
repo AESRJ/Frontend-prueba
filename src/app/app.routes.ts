@@ -5,8 +5,19 @@ import { Dashboard } from './pages/dashboard/dashboard';
 import { Distractors } from './pages/distractors/distractors';
 import { History } from './pages/history/history';
 
+// La raiz decide segun token: si hay sesion -> dashboard, si no -> login.
+// Esto soluciona el caso en que la extension (blocked.html) abre la URL raiz
+// y el usuario ya esta autenticado: antes siempre lo mandaba a /login.
+function rootRedirect(): string {
+  try {
+    return localStorage.getItem('access_token') ? '/dashboard' : '/login';
+  } catch {
+    return '/login';
+  }
+}
+
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', pathMatch: 'full', redirectTo: rootRedirect() },
   { path: 'login', component: Login },
   { path: 'register', component: Login },
   { path: 'profile', component: Profile },
