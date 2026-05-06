@@ -49,6 +49,12 @@
       <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Histórico
     </a>
+    <a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm no-underline transition-colors"
+       [class]="isActive('/adhd-questions') ? 'font-semibold text-white bg-white/15' : 'font-medium text-white/70 hover:bg-white/10 hover:text-white'"
+       (click)="navigate('/adhd-questions')">
+      <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11.5a2.5 2.5 0 1 1 5 0c0 1.5-2.5 2-2.5 4"/><circle cx="11.5" cy="18" r="0.5" fill="currentColor"/><circle cx="12" cy="12" r="10"/></svg>
+      Test TDAH
+    </a>
   </nav>
 
   <button class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors bg-transparent border-none cursor-pointer font-sans" (click)="logout()">

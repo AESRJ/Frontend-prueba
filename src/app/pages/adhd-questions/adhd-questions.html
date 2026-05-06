@@ -1,0 +1,183 @@
+@if (!completado()) {
+  <div class="flex flex-col items-center justify-center min-h-screen bg-[#F3F4F6] px-4 py-8 font-sans">
+
+    <!-- Logo + título -->
+    <div class="w-full max-w-2xl mb-6">
+      <div class="flex items-center gap-2 mb-5">
+        <img src="/assets/logo.png" class="w-8 h-8 object-contain" />
+        <span class="font-bold text-[#111827] text-lg tracking-wide">Focus AI</span>
+      </div>
+
+      <h1 class="font-display font-bold text-[#111827] text-3xl text-center">
+        Para comenzar responde
+      </h1>
+    </div>
+
+    <!-- Tarjeta de preguntas -->
+    <div class="w-full max-w-2xl bg-[#7C3AED] rounded-3xl p-8 shadow-lg relative">
+
+      <!-- Lista de preguntas de la página actual -->
+      <div class="flex flex-col gap-7">
+        @for (pregunta of preguntasPaginaActual(); track pregunta.id) {
+          <div class="flex flex-col items-center gap-3">
+            <!-- Texto de la pregunta -->
+            <p class="text-white font-semibold text-base text-center leading-snug px-2">
+              {{ pregunta.texto }}
+            </p>
+
+            <!-- Opciones -->
+            <div class="flex gap-4">
+              <!-- De acuerdo -->
+              <button
+                class="px-6 py-2.5 rounded-full text-sm font-semibold border-2 transition-all duration-150 cursor-pointer"
+                [class]="getRespuesta(pregunta.id) === 'de_acuerdo'
+                  ? 'bg-[#7C3AED] border-white text-white shadow-md scale-105'
+                  : 'bg-white/20 border-white/40 text-white hover:bg-white/30'"
+                (click)="responder(pregunta.id, 'de_acuerdo')"
+              >
+                De acuerdo
+              </button>
+
+              <!-- En desacuerdo -->
+              <button
+                class="px-6 py-2.5 rounded-full text-sm font-semibold border-2 transition-all duration-150 cursor-pointer"
+                [class]="getRespuesta(pregunta.id) === 'en_desacuerdo'
+                  ? 'bg-white border-white text-[#7C3AED] shadow-md scale-105'
+                  : 'bg-white/20 border-white/40 text-white hover:bg-white/30'"
+                (click)="responder(pregunta.id, 'en_desacuerdo')"
+              >
+                Desacuerdo
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Contador de página -->
+      <p class="absolute bottom-4 right-5 text-white/60 text-sm font-medium">
+        {{ numeroPaginaDisplay() }}/{{ totalPaginas() }}
+      </p>
+
+    </div>
+
+    <!-- Barra de progreso general -->
+    <div class="w-full max-w-2xl mt-5">
+      <div class="w-full h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
+        <div
+          class="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
+          [style.width.%]="(paginaActual() / totalPaginas()) * 100 + (paginaCompleta() ? (1 / totalPaginas()) * 100 : 0)"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Botón continuar + saltar -->
+    <div class="w-full max-w-2xl mt-5 flex flex-col gap-3">
+      <button
+        class="w-full h-14 rounded-full font-display font-bold text-base tracking-wide border-none transition-all duration-150"
+        [class]="paginaCompleta()
+          ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white cursor-pointer'
+          : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'"
+        [disabled]="!paginaCompleta() || enviando()"
+        (click)="siguientePagina()"
+      >
+        @if (enviando()) {
+          Enviando...
+        } @else if (esUltimaPagina()) {
+          FINALIZAR
+        } @else {
+          CONTINUAR
+        }
+      </button>
+
+      <button
+        class="w-full h-11 rounded-full text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] bg-transparent border border-[#E5E7EB] hover:border-[#D1D5DB] transition-all duration-150 cursor-pointer"
+        [disabled]="enviando()"
+        (click)="irAlDashboard()"
+      >
+        Saltar cuestionario
+      </button>
+
+      @if (errorServidor()) {
+        <p class="text-xs text-red-400 text-center mt-1">{{ errorServidor() }}</p>
+      }
+    </div>
+
+    <!-- Aviso legal -->
+    <p class="text-[#9CA3AF] text-xs text-center mt-6 max-w-lg leading-relaxed">
+      Este cuestionario es orientativo y no constituye un diagnóstico clínico. Sus resultados son accesibles únicamente para el equipo de Focus AI.
+    </p>
+
+  </div>
+}
+
+@if (completado()) {
+  <div class="flex flex-col items-center justify-center min-h-screen bg-[#F3F4F6] px-4 py-8 font-sans">
+    <div class="w-full max-w-md bg-white rounded-3xl p-8 shadow-sm border border-[#E5E7EB] flex flex-col items-center gap-6 text-center">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-2">
+        <img src="/assets/logo.png" class="w-8 h-8 object-contain" />
+        <span class="font-bold text-[#111827] text-lg tracking-wide">Focus AI</span>
+      </div>
+
+      <!-- Ícono de éxito -->
+      <div class="w-16 h-16 rounded-full bg-[#F5F3FF] flex items-center justify-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.5" width="32" height="32">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+
+      <div>
+        <h2 class="font-bold text-[#111827] text-2xl mb-1">¡Cuestionario completado!</h2>
+        <p class="text-sm text-[#6B7280]">Tu perfil de concentración ha sido configurado</p>
+      </div>
+
+      <!-- Nivel detectado -->
+      <div class="w-full bg-[#F5F3FF] border border-[#EDE9FE] rounded-2xl px-6 py-4">
+        <p class="text-xs font-semibold text-[#7C3AED] uppercase tracking-wider mb-1">Nivel TDAH detectado</p>
+        <p class="text-xl font-extrabold text-[#111827]">{{ nivelResultado() }}</p>
+      </div>
+
+      <!-- Configuración automática -->
+      <div class="w-full flex flex-col gap-3">
+        <p class="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Configuración automática asignada</p>
+
+        <div class="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3">
+          <div class="w-8 h-8 rounded-lg bg-[#EDE9FE] flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            </svg>
+          </div>
+          <div class="text-left">
+            <p class="text-xs text-[#6B7280]">Modo de enfoque</p>
+            <p class="text-sm font-bold text-[#111827]">{{ modoLabel() }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3">
+          <div class="w-8 h-8 rounded-lg bg-[#EDE9FE] flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <div class="text-left">
+            <p class="text-xs text-[#6B7280]">Duración de sesión</p>
+            <p class="text-sm font-bold text-[#111827]">{{ duracionRecomendada() }} minutos</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-[#9CA3AF] leading-relaxed">
+        Puedes cambiar estas preferencias en cualquier momento desde el panel principal.
+      </p>
+
+      <button
+        class="w-full h-12 rounded-full font-bold text-sm tracking-wide bg-[#7C3AED] hover:bg-[#6D28D9] text-white border-none cursor-pointer transition-all duration-150"
+        (click)="irAlDashboard()"
+      >
+        IR AL PANEL PRINCIPAL
+      </button>
+
+    </div>
+  </div>
+}
