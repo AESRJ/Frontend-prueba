@@ -5,6 +5,7 @@ import { Dashboard } from './pages/dashboard/dashboard';
 import { Distractors } from './pages/distractors/distractors';
 import { History } from './pages/history/history';
 import { AdhdQuestions } from './pages/adhd-questions/adhd-questions';
+import { IqComponent } from './pages/iq/iq';
 
 // La raiz decide segun token: si hay sesion -> dashboard, si no -> login.
 // Esto soluciona el caso en que la extension (blocked.html) abre la URL raiz
@@ -26,4 +27,5 @@ export const routes: Routes = [
   { path: 'distractors', component: Distractors },
   { path: 'history', component: History },
   { path: 'adhd-questions', component: AdhdQuestions },
+  { path: 'iq', component: IqComponent },
 ];

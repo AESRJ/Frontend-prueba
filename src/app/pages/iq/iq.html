@@ -1,0 +1,194 @@
+<div *ngIf="state() === 'intro'"
+  class="min-h-screen bg-[#F3F4F6] flex items-center justify-center px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-16 w-full max-w-4xl flex flex-col gap-9">
+
+    <div class="flex items-center gap-3">
+      <button (click)="goBack()" class="p-2 rounded-full hover:bg-[#F3F4F6] transition-colors mr-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24" class="text-[#6B7280]"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
+      </button>
+      <img src="/assets/logo.png" class="w-10 h-10 object-contain" />
+      <span class="font-bold text-[#111827] text-xl">Focus AI</span>
+    </div>
+
+    <h1 class="font-bold text-[#111827] text-4xl text-center">
+      Prueba de Habilidad Cognitiva
+    </h1>
+
+    <p class="text-lg text-[#6B7280] text-center leading-relaxed">
+      Este cuestionario evalúa tu razonamiento lógico, numérico y verbal.
+      Consta de <strong class="text-[#111827]">30 preguntas</strong> divididas en tres categorías.
+    </p>
+
+    <div class="flex flex-col gap-5">
+      <div class="flex items-center gap-5 bg-[#F5F3FF] border border-[#EDE9FE] rounded-2xl px-8 py-6">
+        <span class="text-[#7C3AED]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+        <span class="text-lg font-medium text-[#111827] flex-1">Matrices Visuales</span>
+        <span class="bg-[#7C3AED] text-white text-base font-bold rounded-full px-5 py-1.5">10</span>
+      </div>
+      <div class="flex items-center gap-5 bg-[#F5F3FF] border border-[#EDE9FE] rounded-2xl px-8 py-6">
+        <span class="text-[#7C3AED]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span>
+        <span class="text-lg font-medium text-[#111827] flex-1">Series</span>
+        <span class="bg-[#7C3AED] text-white text-base font-bold rounded-full px-5 py-1.5">10</span>
+      </div>
+      <div class="flex items-center gap-5 bg-[#F5F3FF] border border-[#EDE9FE] rounded-2xl px-8 py-6">
+        <span class="text-[#7C3AED]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <span class="text-lg font-medium text-[#111827] flex-1">Razonamiento Verbal</span>
+        <span class="bg-[#7C3AED] text-white text-base font-bold rounded-full px-5 py-1.5">10</span>
+      </div>
+    </div>
+
+    <button (click)="startQuiz()" class="btn-primary mt-2 rounded-full py-4 text-lg">
+      COMENZAR
+    </button>
+  </div>
+</div>
+
+
+<div *ngIf="state() === 'quiz'"
+  class="min-h-screen bg-[#F3F4F6] flex items-center justify-center px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-12 w-full max-w-4xl flex flex-col gap-7">
+
+    <div class="flex items-center gap-3">
+      <button (click)="goBack()" class="p-2 rounded-full hover:bg-[#F3F4F6] transition-colors mr-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24" class="text-[#6B7280]"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
+      </button>
+      <img src="/assets/logo.png" class="w-10 h-10 object-contain" />
+      <span class="font-bold text-[#111827] text-xl">Focus AI</span>
+    </div>
+
+    <p class="font-bold text-[#111827] text-2xl text-center">Para comenzar responde</p>
+
+    <div class="w-full h-2.5 bg-[#EDE9FE] rounded-full overflow-hidden">
+      <div
+        class="h-full bg-[#7C3AED] rounded-full transition-all duration-300"
+        [style.width.%]="progress()">
+      </div>
+    </div>
+
+    <div class="bg-[#6d28d9] rounded-2xl p-9 flex flex-col gap-6">
+
+      <div class="flex gap-3 flex-wrap">
+        <span class="text-base font-semibold bg-white/90 text-[#7C3AED] rounded-full px-5 py-2">
+          {{ categoryLabel() }}
+        </span>
+        <span class="text-base font-semibold bg-white/90 rounded-full px-5 py-2"
+          [ngClass]="{
+            'text-emerald-700': currentQuestion().difficulty === 'easy',
+            'text-amber-600':   currentQuestion().difficulty === 'medium',
+            'text-red-600':     currentQuestion().difficulty === 'hard'
+          }">
+          {{ difficultyLabel() }}
+        </span>
+      </div>
+
+      <div *ngIf="getVisualSvg()"
+        class="w-full flex justify-center bg-white/10 rounded-xl p-5">
+        <div [innerHTML]="getVisualSvg()" class="w-72 h-72"></div>
+      </div>
+
+      <p class="text-white font-semibold text-lg leading-relaxed">
+        {{ currentQuestion().question }}
+      </p>
+
+      <div class="flex flex-col gap-4">
+        <button
+          *ngFor="let option of currentQuestion().options; let i = index"
+          (click)="selectOption(i)"
+          [disabled]="isOptionDisabled()"
+          class="flex items-center gap-5 rounded-xl px-6 py-5 text-left border transition-all duration-150 disabled:cursor-default"
+          [ngClass]="{
+            'bg-white/90 border-transparent hover:bg-white active:scale-95': getOptionClass(i) === '',
+            'bg-emerald-50  border-emerald-400':                             getOptionClass(i) === 'correct',
+            'bg-red-50      border-red-400':                                 getOptionClass(i) === 'incorrect',
+            'bg-white/90    border-transparent opacity-40':                  getOptionClass(i) === 'dimmed'
+          }">
+          <span class="text-base font-bold min-w-[24px]"
+            [ngClass]="{
+              'text-[#7C3AED]':   getOptionClass(i) === '' || getOptionClass(i) === 'dimmed',
+              'text-emerald-600': getOptionClass(i) === 'correct',
+              'text-red-500':     getOptionClass(i) === 'incorrect'
+            }">
+            {{ ['A','B','C','D'][i] }}
+          </span>
+          <span class="text-base font-medium"
+            [ngClass]="{
+              'text-[#111827]':   getOptionClass(i) === '' || getOptionClass(i) === 'dimmed',
+              'text-emerald-700': getOptionClass(i) === 'correct',
+              'text-red-600':     getOptionClass(i) === 'incorrect'
+            }">
+            {{ option }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <span class="text-base font-semibold text-[#9CA3AF]">
+        {{ currentIndex() + 1 }}/{{ questions.length }}
+      </span>
+      <button
+        (click)="next()"
+        [disabled]="selectedOption() === null"
+        class="btn-primary !w-auto px-12 py-4 rounded-full text-lg">
+        {{ currentIndex() + 1 === questions.length ? 'FINALIZAR' : 'CONTINUAR' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div *ngIf="state() === 'submitting'"
+  class="min-h-screen bg-[#F3F4F6] flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-10 w-full max-w-md flex flex-col items-center gap-5">
+    <div class="flex items-center gap-2 self-start">
+      <img src="/assets/logo.png" class="w-7 h-7 object-contain" />
+      <span class="font-bold text-[#111827] text-base">Focus AI</span>
+    </div>
+    <div class="w-12 h-12 border-4 border-[#EDE9FE] border-t-[#7C3AED] rounded-full animate-spin"></div>
+    <p class="text-sm text-[#6B7280]">Guardando resultados…</p>
+  </div>
+</div>
+
+<div *ngIf="state() === 'done'"
+  class="min-h-screen bg-[#F3F4F6] flex items-center justify-center px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-10 w-full max-w-lg flex flex-col items-center gap-5 text-center">
+    <div class="flex items-center gap-2 self-start">
+      <img src="/assets/logo.png" class="w-7 h-7 object-contain" />
+      <span class="font-bold text-[#111827] text-base">Focus AI</span>
+    </div>
+    <h2 class="font-bold text-[#111827] text-2xl">¡Cuestionario completado!</h2>
+
+    <ng-container *ngIf="result() as r; else noResult">
+      <div class="w-full bg-[#F5F3FF] border border-[#EDE9FE] rounded-2xl px-6 py-5 flex flex-col gap-2">
+        <div class="flex items-baseline justify-center gap-2">
+          <span class="font-bold text-[#7C3AED] text-5xl">{{ r.score }}</span>
+          <span class="text-[#6B7280] text-xl">/ {{ r.total_questions }}</span>
+        </div>
+        <span class="text-[#6B7280] text-sm">{{ r.percentage }}% de aciertos</span>
+        <div class="text-[#111827] font-semibold text-lg mt-1">
+          Nivel: {{ r.nivel_interpretacion }}
+        </div>
+      </div>
+
+      <div class="w-full bg-[#FEF3C7] border border-[#FDE68A] rounded-2xl px-6 py-4 text-left">
+        <p class="text-[#92400E] text-sm leading-relaxed">
+          Hemos ajustado tu modo de enfoque a
+          <strong class="capitalize">{{ r.mode_recomendado }}</strong>
+          con sesiones de <strong>{{ r.duracion_recomendada }} min</strong>
+          según tu resultado.
+        </p>
+      </div>
+    </ng-container>
+
+    <ng-template #noResult>
+      <p class="text-sm text-[#6B7280] leading-relaxed">
+        Tus respuestas han sido registradas.
+      </p>
+    </ng-template>
+
+    <button (click)="goToDashboard()"
+      class="btn-primary mt-2 rounded-full py-3 px-12 text-base">
+      Ir al panel
+    </button>
+  </div>
+</div>
