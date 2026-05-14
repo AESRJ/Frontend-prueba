@@ -44,10 +44,6 @@ export class Dashboard implements OnInit, OnDestroy {
   private statusSub!: Subscription;
   private distractorSub!: Subscription;
 
-  // AudioContext perezoso para emitir beep cuando se detecta una distraccion
-  // visual (camara) en modos Alerta o Concentracion absoluta.
-  private audioCtx: AudioContext | null = null;
-
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -96,6 +92,9 @@ export class Dashboard implements OnInit, OnDestroy {
         () => this.endSession()
       );
 
+      // Reflejar el modo en el sonido (por si esta vuelta desde /iq u otra ruta).
+      this.cameraTracking.setSoundEnabled(this.modoRequiereSonido());
+
       setTimeout(async () => {
         const videoEl = this.videoRef?.nativeElement;
         if (videoEl) {
@@ -112,14 +111,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
     this.toastSub = this.cameraTracking.toast$.subscribe((event: ToastEvent) => {
       this.manejarToast(event);
-
-      // Reproducir alerta sonora SOLO cuando aparece la distraccion (event.visible)
-      // y el modo del usuario es Alerta o Concentracion absoluta. El modo
-      // Tranquilo recibe solo el toast visual, sin sonido.
-      if (event.visible && this.modoRequiereSonido()) {
-        this.playAlertBeep();
-      }
-
+      // El beep lo emite ahora el CameraTrackingService directamente (para que
+      // siga sonando aunque el Dashboard no este montado, ej. durante el test IQ).
       this.totalDistracciones = this.distractionLog.getEventos().length;
       const eventos = this.distractionLog.getEventos();
       if (eventos.length > 0) {
@@ -152,56 +145,12 @@ export class Dashboard implements OnInit, OnDestroy {
     // preview visible para que el <video> destruido no quede agarrando el stream.
     // La camara se libera en endSession()/nuevaSesion(), o en pagehide (App).
     this.cameraTracking.attachPreviewVideo(null);
-
-    // Cerrar AudioContext si quedo abierto
-    this.cerrarAudioCtx();
   }
 
   /** ¿El modo activo requiere alerta sonora cuando hay distraccion visual? */
   private modoRequiereSonido(): boolean {
     const modo = (this.modoTexto || '').toLowerCase();
     return modo.includes('alerta') || modo.includes('absoluta');
-  }
-
-  /** Reproduce un beep corto via Web Audio (sin archivos binarios). */
-  private playAlertBeep(): void {
-    try {
-      if (!this.audioCtx) {
-        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
-        if (!Ctor) return;
-        this.audioCtx = new Ctor();
-      }
-      const ctx = this.audioCtx!;
-      // Si el contexto quedo suspendido por politicas de autoplay, intentar reanudarlo.
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-
-      const now = ctx.currentTime;
-      const dur = 0.25;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
-      gain.gain.linearRampToValueAtTime(0, now + dur);
-
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + dur + 0.05);
-    } catch (err) {
-      // No bloquear el flujo de UI si el audio falla
-      console.warn('playAlertBeep error:', err);
-    }
-  }
-
-  private cerrarAudioCtx(): void {
-    try {
-      this.audioCtx?.close();
-    } catch {}
-    this.audioCtx = null;
   }
 
   cargarPreferencias() {
@@ -260,6 +209,12 @@ export class Dashboard implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
+
+    // IMPORTANTE: setSoundEnabled debe ejecutarse aqui (dentro del handler del
+    // click "Iniciar sesion") para que AudioContext se cree con un gesto del
+    // usuario; si se difiere, Chrome lo deja en estado "suspended" y los beeps
+    // posteriores no suenan.
+    this.cameraTracking.setSoundEnabled(this.modoRequiereSonido());
 
     const cameraOk = await this.cameraTracking.iniciar();
     if (cameraOk) {

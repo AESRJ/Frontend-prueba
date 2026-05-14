@@ -42,6 +42,13 @@ export class CameraTrackingService {
   // Umbral en ms (1 segundo)
   private readonly UMBRAL_MS = 1000;
 
+  // Audio (beep) para modos Alerta / Concentracion absoluta.
+  // El service maneja el sonido porque vive todo el SPA — si lo manejara el
+  // Dashboard, al navegar a /iq o /adhd-questions se desuscribiria y no sonaria
+  // durante el cuestionario.
+  private audioCtx: AudioContext | null = null;
+  private soundEnabled = false;
+
   toast$ = new Subject<ToastEvent>();
   cameraStatus$ = new Subject<CameraStatus>();
 
@@ -56,16 +63,20 @@ export class CameraTrackingService {
     this.internalVideo.autoplay = true;
     this.internalVideo.playsInline = true;
     this.internalVideo.setAttribute('aria-hidden', 'true');
-    // Fuera de pantalla pero presente en el DOM (face-api requiere que el video
-    // este conectado y reproduciendose para leer frames).
+    // Invisible pero DENTRO del viewport y con tamaño no-cero. Chrome pausa la
+    // decodificacion interna de <video> con tamaño 0 o fuera de pantalla
+    // (left: -9999px), lo que congela readyState y rompe la deteccion cuando el
+    // usuario navega a /iq o /adhd-questions. Por eso usamos opacity:0 + z-index
+    // negativo en lugar de left:-9999px o display:none.
     Object.assign(this.internalVideo.style, {
       position: 'fixed',
-      left: '-9999px',
       top: '0',
-      width: '1px',
-      height: '1px',
+      left: '0',
+      width: '160px',
+      height: '120px',
       opacity: '0',
       pointerEvents: 'none',
+      zIndex: '-1',
     } as Partial<CSSStyleDeclaration>);
     document.body.appendChild(this.internalVideo);
   }
@@ -73,6 +84,65 @@ export class CameraTrackingService {
   /** ¿Hay un stream activo (independiente de si el preview esta montado)? */
   isActive(): boolean {
     return this.stream !== null;
+  }
+
+  /**
+   * Activa/desactiva el beep al detectar distracciones. El Dashboard lo llama
+   * con `true` cuando el modo es Alerta o Concentracion absoluta, y con `false`
+   * en modo Tranquilo.
+   *
+   * Llamar idealmente dentro del handler del click "Iniciar sesion" para que
+   * AudioContext se cree dentro de un gesto del usuario (las politicas de
+   * autoplay de Chrome lo bloquean si no).
+   */
+  setSoundEnabled(enabled: boolean): void {
+    this.soundEnabled = enabled;
+    if (enabled) {
+      this.ensureAudioCtx();
+    }
+  }
+
+  private ensureAudioCtx(): void {
+    if (this.audioCtx) {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      return;
+    }
+    try {
+      const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctor) return;
+      this.audioCtx = new Ctor();
+    } catch (err) {
+      console.warn('AudioContext no disponible:', err);
+    }
+  }
+
+  private playBeep(): void {
+    if (!this.soundEnabled) return;
+    try {
+      this.ensureAudioCtx();
+      if (!this.audioCtx) return;
+      const ctx = this.audioCtx;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+
+      const now = ctx.currentTime;
+      const dur = 0.25;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
+      gain.gain.linearRampToValueAtTime(0, now + dur);
+
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.05);
+    } catch (err) {
+      console.warn('playBeep error:', err);
+    }
   }
 
   /**
@@ -165,6 +235,12 @@ export class CameraTrackingService {
     this.desvioMiradaStart = null;
     this.alertaFueraEncuadreEmitida = false;
     this.alertaDesvioMiradaEmitida = false;
+
+    // Cerrar audio: al iniciar nueva sesion se recreara dentro del gesto del
+    // click "Iniciar sesion".
+    this.soundEnabled = false;
+    try { this.audioCtx?.close(); } catch {}
+    this.audioCtx = null;
 
     this.cameraStatus$.next('idle');
   }
@@ -366,6 +442,7 @@ export class CameraTrackingService {
         mensaje: 'No se detecta tu rostro',
         visible: true
       });
+      this.playBeep();
     }
   }
 
@@ -413,6 +490,7 @@ export class CameraTrackingService {
         mensaje: 'Desvío de mirada detectado',
         visible: true
       });
+      this.playBeep();
     }
   }
 
