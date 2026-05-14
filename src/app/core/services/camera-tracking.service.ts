@@ -15,8 +15,17 @@ export interface ToastEvent {
 })
 export class CameraTrackingService {
   private stream: MediaStream | null = null;
-  private videoElement: HTMLVideoElement | null = null;
-  private canvasElement: HTMLCanvasElement | null = null;
+
+  // Video interno persistente: vive todo el ciclo del SPA, oculto fuera de pantalla.
+  // face-api ejecuta deteccion sobre este elemento — asi la captura NO se interrumpe
+  // cuando el usuario navega del dashboard al cuestionario TDAH/IQ y de vuelta.
+  private internalVideo: HTMLVideoElement;
+
+  // Video visible (del dashboard). Solo lo conectamos para que el usuario vea
+  // el preview; las detecciones siguen corriendo sobre internalVideo aunque
+  // este sea null (al navegar a otra ruta).
+  private previewVideo: HTMLVideoElement | null = null;
+
   private detectionInterval: any = null;
   private running = false;
 
@@ -39,11 +48,63 @@ export class CameraTrackingService {
   constructor(
     private ngZone: NgZone,
     private distractionLog: DistractionLogService
-  ) {}
+  ) {
+    // Crear el video interno una sola vez. Esta fuera del flujo del router-outlet,
+    // por lo que sobrevive a navegacion entre componentes.
+    this.internalVideo = document.createElement('video');
+    this.internalVideo.muted = true;
+    this.internalVideo.autoplay = true;
+    this.internalVideo.playsInline = true;
+    this.internalVideo.setAttribute('aria-hidden', 'true');
+    // Fuera de pantalla pero presente en el DOM (face-api requiere que el video
+    // este conectado y reproduciendose para leer frames).
+    Object.assign(this.internalVideo.style, {
+      position: 'fixed',
+      left: '-9999px',
+      top: '0',
+      width: '1px',
+      height: '1px',
+      opacity: '0',
+      pointerEvents: 'none',
+    } as Partial<CSSStyleDeclaration>);
+    document.body.appendChild(this.internalVideo);
+  }
 
-  async iniciar(videoEl: HTMLVideoElement, canvasEl: HTMLCanvasElement): Promise<boolean> {
-    this.videoElement = videoEl;
-    this.canvasElement = canvasEl;
+  /** ¿Hay un stream activo (independiente de si el preview esta montado)? */
+  isActive(): boolean {
+    return this.stream !== null;
+  }
+
+  /**
+   * Conecta o desconecta el <video> visible del dashboard. No afecta al stream
+   * ni a la deteccion — solo "espejea" el stream a ese elemento para que el
+   * usuario vea su camara. Pasar null al destruirse el dashboard.
+   */
+  async attachPreviewVideo(videoEl: HTMLVideoElement | null): Promise<void> {
+    // Desconectar el anterior si lo hubiera
+    if (this.previewVideo && this.previewVideo !== videoEl) {
+      try { this.previewVideo.pause(); } catch {}
+      this.previewVideo.srcObject = null;
+    }
+
+    this.previewVideo = videoEl;
+
+    if (videoEl && this.stream) {
+      videoEl.srcObject = this.stream;
+      try { await videoEl.play(); } catch { /* autoplay puede fallar, no es bloqueante */ }
+    }
+  }
+
+  async iniciar(): Promise<boolean> {
+    // Si ya hay stream vivo, no pedir uno nuevo. Solo asegurar deteccion corriendo.
+    if (this.stream) {
+      this.cameraStatus$.next('active');
+      if (!this.running && this.modelsLoaded) {
+        this.iniciarDeteccion();
+      }
+      return true;
+    }
+
     this.cameraStatus$.next('requesting');
 
     try {
@@ -51,8 +112,14 @@ export class CameraTrackingService {
         video: { width: 640, height: 480, facingMode: 'user' }
       });
 
-      this.videoElement.srcObject = this.stream;
-      await this.videoElement.play();
+      this.internalVideo.srcObject = this.stream;
+      await this.internalVideo.play();
+
+      // Si el dashboard ya monto un preview antes de iniciar(), espejearlo.
+      if (this.previewVideo) {
+        this.previewVideo.srcObject = this.stream;
+        try { await this.previewVideo.play(); } catch {}
+      }
 
       this.cameraStatus$.next('active');
       await this.cargarFaceApi();
@@ -85,8 +152,13 @@ export class CameraTrackingService {
       this.stream = null;
     }
 
-    if (this.videoElement) {
-      this.videoElement.srcObject = null;
+    // Limpiar referencias en ambos videos (interno y preview) para que el LED
+    // del dispositivo se apague de inmediato.
+    try { this.internalVideo.pause(); } catch {}
+    this.internalVideo.srcObject = null;
+    if (this.previewVideo) {
+      try { this.previewVideo.pause(); } catch {}
+      this.previewVideo.srcObject = null;
     }
 
     this.fueraDeEncuadreStart = null;
@@ -169,7 +241,11 @@ export class CameraTrackingService {
     this.running = true;
 
     this.detectionInterval = setInterval(async () => {
-      if (!this.running || !this.videoElement || !this.faceapi || !this.modelsLoaded) return;
+      if (!this.running || !this.faceapi || !this.modelsLoaded) return;
+      // Siempre detectamos sobre el video interno (persistente, oculto), no sobre
+      // el preview que puede estar desmontado al navegar a otra ruta.
+      const sourceVideo = this.internalVideo;
+      if (!sourceVideo || sourceVideo.readyState < 2) return;
 
       try {
         const options = new this.faceapi.TinyFaceDetectorOptions({
@@ -178,23 +254,23 @@ export class CameraTrackingService {
         });
 
         let detections: any[] = [];
-        
+
         // Verificar si tenemos landmarks disponibles
         const hasLandmarks = this.faceapi.nets.faceLandmark68TinyNet?.isLoaded;
-        
+
         if (hasLandmarks) {
           try {
             detections = await this.faceapi
-              .detectAllFaces(this.videoElement, options)
+              .detectAllFaces(sourceVideo, options)
               .withFaceLandmarks(true);
           } catch (e) {
             // Fallback: solo detección de rostro
-            const rawDetections = await this.faceapi.detectAllFaces(this.videoElement, options);
+            const rawDetections = await this.faceapi.detectAllFaces(sourceVideo, options);
             detections = rawDetections.map((d: any) => ({ detection: d, landmarks: null }));
           }
         } else {
           // Solo detección de rostro sin landmarks
-          const rawDetections = await this.faceapi.detectAllFaces(this.videoElement, options);
+          const rawDetections = await this.faceapi.detectAllFaces(sourceVideo, options);
           detections = rawDetections.map((d: any) => ({ detection: d, landmarks: null }));
         }
 

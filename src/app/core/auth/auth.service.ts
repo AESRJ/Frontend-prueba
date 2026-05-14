@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { CameraTrackingService } from '../services/camera-tracking.service';
 
 export interface RegisterRequest {
   name: string;
@@ -50,7 +51,8 @@ export interface UpdateProfileRequest {
 })
 export class AuthService {
   private BASE_URL = environment.apiUrl;
- 
+  private cameraTracking = inject(CameraTrackingService);
+
   constructor(private http: HttpClient) {}
  
   register(data: RegisterRequest): Observable<RegisterResponse> {
@@ -128,6 +130,11 @@ export class AuthService {
     // backend (si existe) para que no quede colgada como "activa" en BD.
     this.endActiveSessionBestEffort();
     this.notifyExtensionLogout();
+
+    // Liberar la camara: el ngOnDestroy del Dashboard solo desconecta el preview
+    // (para preservar el stream durante navegacion a cuestionarios). En logout
+    // si queremos cortar todo y apagar el LED.
+    try { this.cameraTracking.detener(); } catch {}
 
     // Limpia el token y toda la data per-user que vive en localStorage
     // (preferencias, estado del timer, historial de sesiones, etc.) para
