@@ -109,10 +109,12 @@ export class Dashboard implements OnInit, OnDestroy {
       }, 200);
     }
 
+    // El render visual del toast de camara se mueve a CameraToastComponent
+    // (montado en app.html) para que las alertas sigan apareciendo cuando el
+    // usuario navega al test IQ o al cuestionario TDAH. Aca solo actualizamos
+    // contadores y "ultimo evento" del panel principal.
     this.toastSub = this.cameraTracking.toast$.subscribe((event: ToastEvent) => {
-      this.manejarToast(event);
-      // El beep lo emite ahora el CameraTrackingService directamente (para que
-      // siga sonando aunque el Dashboard no este montado, ej. durante el test IQ).
+      if (!event.visible) return; // ignorar el "descartar" — no afecta contadores
       this.totalDistracciones = this.distractionLog.getEventos().length;
       const eventos = this.distractionLog.getEventos();
       if (eventos.length > 0) {
@@ -439,25 +441,6 @@ export class Dashboard implements OnInit, OnDestroy {
       this.distractorBloqueado = { nombre: evento.nombre, visible: true };
     }
     this.cdr.detectChanges();
-  }
-
-  private manejarToast(event: ToastEvent): void {
-    if (event.visible) {
-      const existente = this.toasts.findIndex(t => t.tipo === event.tipo);
-      if (existente >= 0) return;
-      const toast = { tipo: event.tipo, mensaje: event.mensaje, visible: true, autoCloseTimer: null as any };
-      toast.autoCloseTimer = setTimeout(() => {
-        const idx = this.toasts.indexOf(toast);
-        if (idx >= 0) { this.toasts.splice(idx, 1); this.cdr.detectChanges(); }
-      }, 6000);
-      this.toasts.push(toast);
-    } else {
-      const idx = this.toasts.findIndex(t => t.tipo === event.tipo);
-      if (idx >= 0) {
-        if (this.toasts[idx].autoCloseTimer) clearTimeout(this.toasts[idx].autoCloseTimer);
-        this.toasts.splice(idx, 1);
-      }
-    }
   }
 
   private formatearFecha(date: Date): string {

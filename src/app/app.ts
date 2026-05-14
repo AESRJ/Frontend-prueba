@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth/auth.service';
+import { CameraToastComponent } from './shared/camera-toast/camera-toast';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, CameraToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
