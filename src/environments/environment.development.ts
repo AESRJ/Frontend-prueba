@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://backend-focus-ia-production.up.railway.app'
+  apiUrl: 'https://backend-focus-ia-production.up.railway.app',
+  focusExtensionId: 'cdpgcikgbcjfkinnhfcibppefghhjijl', // ID de la extension descomprimida en chrome://extensions
 };

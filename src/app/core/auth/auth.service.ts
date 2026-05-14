@@ -74,8 +74,33 @@ export class AuthService {
       tap(res => {
         if (res.access_token) {
           localStorage.setItem('access_token', res.access_token);
+          this.notifyExtensionLogin(res.access_token);
         }
       })
+    );
+  }
+
+  private notifyExtensionLogin(token: string): void {
+    const chromeRuntime = (window as any).chrome?.runtime;
+    if (!chromeRuntime?.sendMessage) return;
+    chromeRuntime.sendMessage(
+      environment.focusExtensionId,
+      { type: 'SET_TOKEN', token },
+      (resp: any) => {
+        const err = chromeRuntime.lastError;
+        if (err) console.debug('Focus IA ext no instalada:', err.message);
+        else console.debug('Focus IA ext respondió:', resp);
+      }
+    );
+  }
+
+  private notifyExtensionLogout(): void {
+    const chromeRuntime = (window as any).chrome?.runtime;
+    if (!chromeRuntime?.sendMessage) return;
+    chromeRuntime.sendMessage(
+      environment.focusExtensionId,
+      { type: 'CLEAR_TOKEN' },
+      () => { void chromeRuntime.lastError; }
     );
   }
  
@@ -102,6 +127,7 @@ export class AuthService {
     // Antes de limpiar el token, intentar finalizar la sesion activa en el
     // backend (si existe) para que no quede colgada como "activa" en BD.
     this.endActiveSessionBestEffort();
+    this.notifyExtensionLogout();
 
     // Limpia el token y toda la data per-user que vive en localStorage
     // (preferencias, estado del timer, historial de sesiones, etc.) para
